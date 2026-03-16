@@ -55,6 +55,9 @@ jobs:
   # Deploy to Staging: continuous deployment on each push
   # ------------------------------------------------------------
   Staging:
+    permissions:
+      id-token: write
+      contents: read
     name: Deploy to Staging
     environment:
       name: Staging
