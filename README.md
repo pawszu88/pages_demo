@@ -1,144 +1,183 @@
-# 03_02 Continuous Deployment for Github Pages
+# 03_04 Continuous Deployment for Lambda Functions
 
-GitHub Pages is a free service provided by GitHub that lets you host static websites directly from our GitHub repositories.
+This lesson extends our existing Python integration workflow into a complete CI/CD pipeline that automatically deploys an application to Amazon Web Services using AWS Lambda.
 
-You can use HTML or markdown to design webpages and then, using GitHub Actions, deploy the site to a publicly accessible URL.
+```mermaid
+flowchart LR
+  A[Push to main] --> B[Integration Lint + Test Suite]
+  B -->|Pass| C[Package app as .zip and save artifact]
+  C --> E[Deploy to AWS Lambda Staging environment]
+  E --> F{Approve Production Deployment?}
+  F -->|Yes| G[Deploy to AWS Lambda Production environment]
+  F -->|No| H[End the workflow]
+```
 
-## GitHub Pages Repo and Site Visibility by Plan
+## Integration (CI)
 
-When working with GitHub Pages, it's important to understand the distinction between **repository visibility** and **site visibility**:
+- Reuses the existing integration workflow
+- Lints the code and runs the test suite
+- Must succeed before delivery or deployment can run
 
-- **Repository visibility** refers to who can access the source code repository (public, private, or internal). This determines whether you can use a repository to host a GitHub Pages site.
+## Delivery
 
-- **Site visibility** refers to who can access the published GitHub Pages website itself. This is separate from repository visibility; even if your repository is private, the published site may still be publicly accessible on the internet, depending on your GitHub plan.
+- Adds a delivery job to the pipeline
+- Packages the application into a ZIP archive
+- Publishes the ZIP as a workflow artifact
 
-The following matrix outlines how these two types of visibility interact across different GitHub plans:
+## Deployment
 
-| Plan / context | Repo visibility allowed for Pages | Site visibility options |
-| -------------- | --------------------------------- | ----------------------- |
-| Free (personal) | Public only. Private repos cannot be used for Pages. | Public only. Any Pages site is public on the internet. |
-| Free for organizations | Public only for Pages. | Public only. Sites are public if enabled. |
-| Pro (personal) | Public and private repos can host Pages. | Public only. Sites are public even when repo is private. |
-| Team (organization, non‑Enterprise) | Public and private repos can host Pages. | Public only. No private Pages; org admins can only allow/deny public sites. |
-| Enterprise Cloud (org, no EMU) | Public, private, internal repos can host Pages. | Public or private per site. Private = only users with repo read access. |
-| Enterprise Cloud (org, with EMU enabled) | Private and internal repos (org‑scoped). | Private only. All Pages sites restricted to enterprise members. |
-| Enterprise Server (self‑hosted) | Public and private repos (per instance policy). | Public by default; private sites require Enterprise Cloud (not Server). |
+- Adds a deployment job that consumes the artifact
+- Deploys the application to AWS Lambda
+- Build and deploy steps remain clearly separated
+
+## Environments
+
+- **Staging**: Automatically deploys on every successful push to `main`
+- **Production**: Requires manual approval enforced using environment protection rules
 
 ## References
 
 | Reference | Description |
 |----------|-------------|
-| [Creating a GitHub Pages site](https://docs.github.com/en/pages/getting-started-with-github-pages/creating-a-github-pages-site) | Official GitHub documentation for creating and configuring GitHub Pages sites |
-| [Hugo Project Details](./HUGO_PROJECT_DETAILS.md) | Documentation for the Hugo project used in this lesson |
+| [Lambda Project Details](./LAMBDA_PROJECT_DETAILS.md) | Documentation for the Lambda project used in this lesson |
 
-## Lab: Deploy a Hugo Static Site to GitHub Pages
+## Lab: Continuous Deployment to AWS Lambda with GitHub Actions
 
-In this lab, you’ll deploy a **Hugo-based static website** to **GitHub Pages** using a GitHub-provided Actions workflow. By the end, your site will be live at a public `github.io` URL.
+In this lab, you’ll complete a full CI/CD pipeline that deploys a Python application to **AWS Lambda** using **GitHub Actions**.
 
-> [!IMPORTANT]
-> If you’re using a **free GitHub account**, the repository **must be public** to deploy a GitHub Pages site.
+You’ll reuse an existing integration workflow, package the application as an artifact, and deploy it automatically to a staging environment with an approval gate for production.
 
 ### Prerequisites
 
-Before you begin, make sure you have the exercise files for this lesson downloaded to your local system.
+Before starting this lab, you should have:
 
-### Instructions
+- Completed the previous lesson and have the **exercise files**
+- An **AWS account** with a CloudFormation stack already deployed
+- A **GitHub repository** where you can configure variables and workflows
 
-#### Step 1: Create a New Public Repository
+### Step 1: Verify Lambda Environments
 
-1. From GitHub, create a **new repository**.
-2. Give the repository a name (for example: `pages_demo`).
-3. Ensure the repository is set to **Public**.
-4. Select **Add a README**.
-5. Create the repository.
+Using the resources created earlier in the course, confirm that two Lambda environments exist:
 
-#### Step 2: Upload the Exercise Files
+- **Staging Lambda function**
+- **Production Lambda function**
 
-1. From the **repository home page**, select **Add file → Upload files**.
-2. Open your local file browser.
-3. **Select all exercise files** and drag them into the upload area.
-4. Commit the uploaded files.
-5. Verify the directory structure matches the project layout exactly.
+At this point, both functions are placeholders and do not yet contain the application code. These functions will be updated by the deployment workflow later in the lab.
+
+### Step 2: Configure Repository Variables
+
+Confirm your repository so workflows can authenticate with **Amazon Web Services**.
+
+> [!TIP]
+> If your repository is not already configured to authenticate with AWS, please complete the previous lesson.
+
+1. Open your GitHub repository settings.
+2. Select **Secrets and variables** then select **Actions**.
+3. Select the **Variables** tab.
+4. Confirm that **Production** and **Staging** environments variables are in place for:
+
+   - `FUNCTION_NAME`
+   - `URL`
+
+5. Confirm that **Repository variables** are in place for:
+
+   - `AWS_REGION`
+   - `AWS_ROLE_ARN`
+
+These values will be referenced by GitHub Actions during deployment.
+
+### Step 3: Upload Exercise Files and Workflows
+
+1. Upload the application code from the exercise files into the repository.
+2. Move the workflow files into the `.github/workflows` directory.
 
 > [!IMPORTANT]
-> Hugo requires content to be placed in specific directories. An incorrect structure will prevent the site from building correctly. See [Hugo Project Details](./HUGO_PROJECT_DETAILS.md#project-structure) for more information on the project structure.
+> Move the **integration workflow first**.  This prevents the deployment workflow from triggering and failing due to a missing dependency.
 
-#### Step 3: Update the Hugo Configuration in `config.toml`
+### Step 4: Review the Integration Workflow
 
-1. Open the `config.toml` file in the repository.
-2. Select the **edit (pencil) icon**.
-3. Locate the `baseURL` setting at the top of the file.
-4. Replace the placeholders with your values:
+Open the integration workflow file.  This workflow is responsible for linting and testing the application.
 
-   - Replace `GITHUB_USER_NAME` with your GitHub username
-   - Replace `GITHUB_REPO_NAME` with your repository name
+Note the characteristics:
 
-   **Example:**
+- Includes a `workflow_call` trigger for reuse
+- Includes a `push` trigger that **ignores the `main` branch**
 
-   For GitHub user `automate6500` using repository `pages_demo` the `baseURL` starting with:
+Why this matters:
 
-   ```yaml
-   baseURL = "https://GITHUB_USER_NAME.github.io/GITHUB_USER_NAME-GITHUB_REPO_NAME/"
-   ```
+- Prevents the integration workflow from running twice on pushes to `main`
+- Avoids duplicate runs when called by the deployment workflow
 
-   would become:
+### Step 5: Review the Deployment Workflow
 
-   ```yaml
-   baseURL = "https://automate6500.github.io/automate6500-pages_demo/"
-   ```
+Open the deployment workflow file and note the key sections:
 
-5. Commit the changes.
+| Section | Description |
+|---------|-------------|
+| **Concurrency configuration** | Ensures only one deployment runs at a time |
+| **Integration job** | Calls the integration workflow to reuse linting and testing logic |
+| **Artifact packaging** | Packages the application code and uploads a ZIP file as a workflow artifact |
+| **Staging deployment job** | Automatically deploys after integration succeeds |
+| **Production deployment job** | Requires manual approval; uses the same artifact created earlier |
 
-#### Step 4: Enable GitHub Pages with GitHub Actions
+Both deployment jobs:
 
-1. Open the **Settings** tab for the repository.
-2. In the left navigation, select **Pages** under *Code and automation*.
-3. Under **Build and deployment**, set the **Source** to **GitHub Actions**.
+- Configure AWS credentials using the service account
+- Download the artifact
+- Deploy the application to AWS Lambda
 
-After the page refreshes, GitHub will suggest workflows for deployment.
+### Step 6: Run the Deployment Workflow
 
-#### Step 5: Configure the Hugo Deployment Workflow
+1. Open the **Actions** tab in your repository.
+2. Select the deployment workflow.
+3. Choose **Run workflow** to start a new run.
 
-1. Locate the **Hugo** workflow option.
-2. Select **Configure**.
+Observe the workflow as it:
 
-    Before committing the file, take a moment to review the workflow:
+- Runs integration
+- Packages the application
+- Deploys automatically to **Staging**
 
-    - **Permissions** allow the workflow to read the repository and write to GitHub Pages.
-    - **Concurrency** prevents overlapping deployments.
-    - The **build job**:
-        - Installs the Hugo CLI
-        - Checks out the repository
-        - Builds the static site
-        - Uploads the output as an artifact
+### Step 7: Verify the Staging Deployment
 
-    - The **deploy job**:
-        - Deploys the artifact to GitHub Pages
-        - Defines a deployment environment with a site URL
+Once the workflow reaches the production approval step:
 
-3. Commit the workflow.
+1. Open the staging environment.
+2. Reload the page to confirm the new version is live.
+3. Perform any validation or testing needed to confirm the deployment is successful.
 
-#### Step 6: Monitor the Deployment
+This is the quality checkpoint before production deployment.
 
-1. Navigate to the **Actions** tab.
-2. Select the running workflow.
-3. Wait for the workflow to complete successfully.
+### Step 8: Approve and Deploy to Production
 
-When the workflow finishes:
+1. Return to the workflow run.
+2. Select **Review deployments**.
+3. Check the box next to **Production**.
+4. Add a comment (for example: *Looks good to me!*). 😎
+5. Select **Approve and deploy**.
 
-- The **build job** summary shows the generated artifact.
-- The **deploy job** displays a **deployment URL**.
+Wait for the production job to complete.
 
-#### Step 7: View the Live Site
+### Step 9: Confirm Production Deployment
 
-1. Select the deployment URL provided by the workflow.
-2. Confirm your Hugo site is live and publicly accessible.
+Once the workflow finishes:
 
-In just a few steps, you’ve gone from raw files to a fully deployed Hugo static site using GitHub Pages and GitHub Actions.
+- Verify that the production Lambda function has been updated successfully
+- Confirm the application is running as expected
 
-## Shenanigans
+## Lab Complete
+
+After completing the steps for this lab, you should have in place:
+
+- Continuous deployment to **Staging**
+- A protected deployment to **Production**
+- Artifact-based delivery using GitHub Actions
+- Environment-level approval gates
+
+> [!TIP]
+> If you’re following along, update the code and push changes to your repository to see the continuous deployment behavior in action.  Maybe even push some bad code to see how the workflow responds to failures.
 
 <!-- FooterStart -->
 ---
-[← 03_01 Deploying Software with Github actions](../03_01_deploying_software_with_github_actions/README.md) | [03_03 Create a Service account for Deployments →](../03_03_service_account/README.md)
+[← 03_03 Create a Service account for Deployments](../03_03_service_account/README.md) | [03_05 Continuous Deployment for Infrastructure as Code →](../03_05_cd_for_iac/README.md)
 <!-- FooterEnd -->
