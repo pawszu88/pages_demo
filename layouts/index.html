@@ -1,0 +1,25 @@
+{{ define "main" }}
+<div>
+  <h1>WELCOME TO THE HOME OF THE AMAZING API</h1>
+</div>
+
+<div class="card-grid">
+  <a href="{{ "/our_tech_story" | relURL }}" class="card">
+    <div class="card-icon">📖</div>
+    <h2>Our Tech Story</h2>
+    <p>Our team has worked hard to create an innovative solution that will change the way you think about code, APIs, and the entire world.</p>
+  </a>
+
+  <a href="{{ "/using_the_api" | relURL }}" class="card">
+    <div class="card-icon">💻</div>
+    <h2>Using the API</h2>
+    <p>We've created an easy-to-follow guide that will help you get started with using our API. Whether you're a seasoned developer or new to programming, our instructions will have you up and running in an amazingly short time.</p>
+  </a>
+
+  <a href="{{ "/meet_the_team" | relURL }}" class="card">
+    <div class="card-icon">👥</div>
+    <h2>Meet the Team</h2>
+    <p>Our team is made up of four talented individuals who have worked tirelessly to create this amazing API. Get to know them by reading their bios below.</p>
+  </a>
+</div>
+{{ end }}

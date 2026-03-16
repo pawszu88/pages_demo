@@ -1,0 +1,25 @@
+{{ define "main" }}
+<div class="term-page">
+    <h1>{{ .Title }}</h1>
+    {{ if .Content }}
+        <div class="term-content">
+            {{ .Content }}
+        </div>
+    {{ end }}
+
+    {{ if .Pages }}
+        <ul class="term-pages">
+            {{ range .Pages }}
+                <li>
+                    <a href="{{ .RelPermalink }}">{{ .Title }}</a>
+                    {{ if .Summary }}
+                        <p class="summary">{{ .Summary }}</p>
+                    {{ end }}
+                </li>
+            {{ end }}
+        </ul>
+    {{ else }}
+        <p>No pages found for this term.</p>
+    {{ end }}
+</div>
+{{ end }}

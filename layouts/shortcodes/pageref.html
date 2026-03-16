@@ -1,0 +1,8 @@
+{{- $slug := .Get 0 -}}
+{{- $slugLower := lower $slug -}}
+{{- $page := .Site.GetPage (printf "/%s" $slugLower) -}}
+{{- if $page -}}
+{{- $page.RelPermalink -}}
+{{- else -}}
+{{- printf "%s/" $slugLower | relURL -}}
+{{- end -}}

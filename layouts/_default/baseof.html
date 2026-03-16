@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ .Title }} | {{ .Site.Title }}</title>
+    <link rel="stylesheet" href="{{ "/assets/css/style.css" | relURL }}">
+</head>
+<body>
+    <header class="site-header">
+        <div class="container">
+            <div class="header-content">
+                <a href="{{ "/" | relURL }}" class="logo">
+                    <div class="logo-icon">🚀</div>
+                    <span class="logo-text">Amazing API</span>
+                </a>
+                <nav class="main-nav">
+                    <button class="mobile-menu-toggle" id="mobile-menu-toggle">☰</button>
+                    <ul class="nav-list" id="nav-list">
+                        <li><a href="{{ "/" | relURL }}" {{ if eq .RelPermalink "/" }}class="active"{{ end }}>Home</a></li>
+                        <li><a href="{{ "/our_tech_story" | relURL }}" {{ if in .RelPermalink "our_tech_story" }}class="active"{{ end }}>Our Tech Story</a></li>
+                        <li><a href="{{ "/using_the_api" | relURL }}" {{ if in .RelPermalink "using_the_api" }}class="active"{{ end }}>Using the API</a></li>
+                        <li><a href="{{ "/our_customers" | relURL }}" {{ if in .RelPermalink "our_customers" }}class="active"{{ end }}>Our Customers</a></li>
+                        <li><a href="{{ "/meet_the_team" | relURL }}" {{ if in .RelPermalink "meet_the_team" }}class="active"{{ end }}>Meet the Team</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="site-content">
+        <div class="container">
+            {{ block "main" . }}{{ end }}
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            <p>&copy; 2024 The Amazing API. Built with AmazingScript.</p>
+            <nav class="footer-nav">
+                <a href="{{ "/" | relURL }}">Home</a>
+                <a href="{{ "/our_tech_story" | relURL }}">Our Tech Story</a>
+                <a href="{{ "/using_the_api" | relURL }}">Using the API</a>
+                <a href="{{ "/our_customers" | relURL }}">Our Customers</a>
+                <a href="{{ "/meet_the_team" | relURL }}">Meet the Team</a>
+            </nav>
+        </div>
+    </footer>
+
+    <script src="{{ "/assets/js/main.js" | relURL }}"></script>
+</body>
+</html>
