@@ -11,9 +11,10 @@ on:
   workflow_dispatch:
 
 permissions:
+  id-token: write
   contents: read
   checks: write
-
+  
 jobs:
   lint-and-test:
     runs-on: ubuntu-latest
